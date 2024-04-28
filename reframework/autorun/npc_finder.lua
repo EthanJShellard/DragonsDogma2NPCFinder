@@ -60,7 +60,6 @@ local function SetIsFallDamageEnabled(enabled)
             local fallDamageCalcParam = fallDamageCalc:get_field("<Param>k__BackingField");
             if fallDamageCalcParam then
                 if enabled then
-                    print('Fall damage enabled');
                     fallDamageCalcParam.HeightDamageForHuman = _defaultHeightDamageForHuman;
                     fallDamageCalcParam.BaseDamageForHuman = _defaultBaseDamageForHuman;
                     fallDamageCalcParam.DamagePerHeightForHuman = _defaultDamagePerHeightForHuman;
@@ -72,7 +71,6 @@ local function SetIsFallDamageEnabled(enabled)
                         _defaultDamagePerHeightForHuman = fallDamageCalcParam.DamagePerHeightForHuman;
                         _defaultHeightDieForHuman = fallDamageCalcParam.HeightDieForHuman;
                     end
-                    print('Fall damage disabled');
                     fallDamageCalcParam.HeightDamageForHuman = 99999;
                     fallDamageCalcParam.BaseDamageForHuman = 0;
                     fallDamageCalcParam.DamagePerHeightForHuman = 0;
