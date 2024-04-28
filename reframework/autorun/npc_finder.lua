@@ -1,4 +1,4 @@
-local modName = "NPCFinder"
+local modName = "NPC Finder"
 
 local _NPCManager;
 local function GetNPCManager()
@@ -45,6 +45,44 @@ local function GetNPCData()
     NPCDataFound = #NPCDataArray > 0;
 end
 
+local _defaultHeightDamageForHuman;
+local _defaultBaseDamageForHuman;
+local _defaultDamagePerHeightForHuman;
+local _defaultHeightDieForHuman;
+local fallDamageEnabled = true;
+local shouldDisableFallDamageDuringWarp = true;
+
+local function SetIsFallDamageEnabled(enabled)
+    local manualPlayer = GetCharacterManager():get_ManualPlayer();
+    if manualPlayer then
+        local fallDamageCalc = manualPlayer:get_field("<FallDamageParamCalc>k__BackingField");
+        if fallDamageCalc then
+            local fallDamageCalcParam = fallDamageCalc:get_field("<Param>k__BackingField");
+            if fallDamageCalcParam then
+                if enabled then
+                    print('Fall damage enabled');
+                    fallDamageCalcParam.HeightDamageForHuman = _defaultHeightDamageForHuman;
+                    fallDamageCalcParam.BaseDamageForHuman = _defaultBaseDamageForHuman;
+                    fallDamageCalcParam.DamagePerHeightForHuman = _defaultDamagePerHeightForHuman;
+                    fallDamageCalcParam.HeightDieForHuman = _defaultHeightDieForHuman;
+                else
+                    if fallDamageEnabled then
+                        _defaultHeightDamageForHuman = fallDamageCalcParam.HeightDamageForHuman;
+                        _defaultBaseDamageForHuman = fallDamageCalcParam.BaseDamageForHuman;
+                        _defaultDamagePerHeightForHuman = fallDamageCalcParam.DamagePerHeightForHuman;
+                        _defaultHeightDieForHuman = fallDamageCalcParam.HeightDieForHuman;
+                    end
+                    print('Fall damage disabled');
+                    fallDamageCalcParam.HeightDamageForHuman = 99999;
+                    fallDamageCalcParam.BaseDamageForHuman = 0;
+                    fallDamageCalcParam.DamagePerHeightForHuman = 0;
+                    fallDamageCalcParam.HeightDieForHuman = 99999;
+                end
+            end
+        end
+    end
+end
+
 local warpCoroutine;
 local warping = false;
 local function WarpPlayerToNPCPosition(index)
@@ -56,28 +94,48 @@ local function WarpPlayerToNPCPosition(index)
         if teleporter and NPCHolder then
             GetCharacterManager():requestStartPause(playerCharacter, 2);
             teleporter:teleport(GetWorldOffsetSystem():toUniversalPosition(NPCHolder:get_Position()));
+            
+            warping = true;
+            warpCoroutine = coroutine.create(function()
+                if shouldDisableFallDamageDuringWarp then
+                    SetIsFallDamageEnabled(false);
+                end
+
+                local time = os.time();
+                local newTime = time + 4;
+                while (time < newTime) do
+                    coroutine.yield();
+                    time = os.time();
+                end
+
+                GetCharacterManager():requestEndPause(playerCharacter, 2);
+                newTime = time + 2;
+
+                while (time < newTime) do
+                    coroutine.yield();
+                    time = os.time();
+                end
+
+                if shouldDisableFallDamageDuringWarp then
+                    SetIsFallDamageEnabled(true);
+                end
+
+                warping = false;
+                -- Data seems to become invalid eventually. This should hopefully keep it up to date enough.
+                NPCDataFound = false;
+                GetNPCData();
+            end);
+        
+            coroutine.resume(warpCoroutine);
         end
     end
-
-    warpCoroutine = coroutine.create(function()
-        time=os.time();
-        wait=4;
-        newtime=time+wait;
-        while (time<newtime)
-            do
-            coroutine.yield();
-            time=os.time();
-        end
-        GetCharacterManager():requestEndPause(playerCharacter, 2);
-        warping = false;
-        -- Data seems to become invalid eventually. This should hopefully keep it up to date enough.
-        NPCDataFound = false;
-        GetNPCData();
-    end);
-
-    warping = true;
-    coroutine.resume(warpCoroutine);
 end
+
+re.on_frame(function()
+    if warping then
+        coroutine.resume(warpCoroutine);
+    end
+end)
 
 re.on_draw_ui(function()
     if not NPCDataFound then 
@@ -89,26 +147,28 @@ re.on_draw_ui(function()
         end
     else
         if warping then
-            coroutine.resume(warpCoroutine);
-        end
-    
-        if imgui.tree_node(modName) then
-            imgui.text("Search: ");
-            imgui.same_line();
-            searchStringChange, searchString = imgui.input_text("", searchString);
-    
-            imgui.spacing();
-    
-            for _, NPC in ipairs(NPCDataArray) do
-                if NPC[1] ~= "???" and string.find(NPC[1]:lower(), searchString:lower()) then
-                    imgui.text(NPC[1]);
-                    imgui.same_line();
-                    if imgui.button("Warp To " .. NPC[1]) then
-                        WarpPlayerToNPCPosition(NPC[3]);
+            imgui.text('Warping...');
+        else
+            _, shouldDisableFallDamageDuringWarp = imgui.checkbox("Disable fall damage during warp: ", shouldDisableFallDamageDuringWarp);
+            
+            if imgui.tree_node(modName) then
+                imgui.text("Search: ");
+                imgui.same_line();
+                searchStringChange, searchString = imgui.input_text("", searchString);
+        
+                imgui.spacing();
+        
+                for _, NPC in ipairs(NPCDataArray) do
+                    if NPC[1] ~= "???" and string.find(NPC[1]:lower(), searchString:lower()) then
+                        imgui.text(NPC[1]);
+                        imgui.same_line();
+                        if imgui.button("Warp To " .. NPC[1]) then
+                            WarpPlayerToNPCPosition(NPC[3]);
+                        end
                     end
                 end
+                imgui.tree_pop();
             end
-            imgui.tree_pop();
         end
     end 
 end
