@@ -86,6 +86,7 @@ re.on_draw_ui(function()
                 GetNPCData();
             end
         end
+        imgui.tree_pop();
     else
         if warping then
             coroutine.resume(warpCoroutine);
@@ -107,6 +108,7 @@ re.on_draw_ui(function()
                     end
                 end
             end
+            imgui.tree_pop();
         end
     end 
 end
