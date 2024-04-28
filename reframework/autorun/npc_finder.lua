@@ -4,9 +4,6 @@ local _NPCManager;
 local function GetNPCManager()
     if _NPCManager == nil then
         _NPCManager = sdk.get_managed_singleton("app.NPCManager");
-        if not _NPCManager then
-            error("Failed to get NPCManager.")
-        end
     end
     return _NPCManager;
 end 
@@ -15,9 +12,6 @@ local _characterManager;
 local function GetCharacterManager()
     if _characterManager == nil then
         _characterManager = sdk.get_managed_singleton("app.CharacterManager");
-        if not _characterManager then
-            error("Failed to get CharacterManager.")
-        end
     end
     return _characterManager;
 end
@@ -26,17 +20,18 @@ local _worldOffsetSystem
 local function GetWorldOffsetSystem()
     if _worldOffsetSystem == nil then
         _worldOffsetSystem = sdk.get_managed_singleton("app.WorldOffsetSystem");
-        if not _worldOffsetSystem then
-            error("Failed to get WorldOffsetSystem.")
-        end
     end
     return _worldOffsetSystem;
 end
 
+local NPCDataArray = {};
+local NPCDataFound = false;
+local searchString = "";
+local searchStringChange = false;
+
 -- Returns 2D array, where dimension is NPC index,
 -- (name, character id, index)  
 local function GetNPCData()
-    local NPCDataArray = {};
     local NPCHolderList = GetNPCManager():get_NPCHolder_FullList();
     for itr, NPCHolder in ipairs(NPCHolderList:ToArray()) do
         local NPC = GetNPCManager():getNPCData(NPCHolder.CharaID);
@@ -47,7 +42,7 @@ local function GetNPCData()
             NPCDataArray[itr][3] = itr;
         end
     end
-    return NPCDataArray;
+    NPCDataFound = #NPCDataArray > 0;
 end
 
 local warpCoroutine;
@@ -75,37 +70,44 @@ local function WarpPlayerToNPCPosition(index)
         end
         GetCharacterManager():requestEndPause(playerCharacter, 2);
         warping = false;
+        -- Data seems to become invalid eventually. This should hopefully keep it up to date enough.
+        NPCDataFound = false;
+        GetNPCData();
     end);
 
     warping = true;
     coroutine.resume(warpCoroutine);
 end
 
-local NPCData = GetNPCData();
-local searchString = "";
-local searchStringChange = false;
-
 re.on_draw_ui(function()
-    if warping then
-        coroutine.resume(warpCoroutine);
-    end
-
-    if imgui.tree_node(modName) then
-        imgui.text("Search: ");
-        imgui.same_line();
-        searchStringChange, searchString = imgui.input_text("", searchString);
-
-        imgui.spacing();
-
-        for idx, NPC in ipairs(NPCData) do
-            if NPC[1] ~= "???" and string.find(NPC[1]:lower(), searchString:lower()) then
-                imgui.text(NPC[1]);
-                imgui.same_line();
-                if imgui.button("Warp To " .. NPC[1]) then
-                    WarpPlayerToNPCPosition(NPC[3]);
+    if not NPCDataFound then 
+        if imgui.tree_node(modName) then
+            if imgui.button("Find NPCS") and GetNPCManager() then
+                GetNPCData();
+            end
+        end
+    else
+        if warping then
+            coroutine.resume(warpCoroutine);
+        end
+    
+        if imgui.tree_node(modName) then
+            imgui.text("Search: ");
+            imgui.same_line();
+            searchStringChange, searchString = imgui.input_text("", searchString);
+    
+            imgui.spacing();
+    
+            for _, NPC in ipairs(NPCDataArray) do
+                if NPC[1] ~= "???" and string.find(NPC[1]:lower(), searchString:lower()) then
+                    imgui.text(NPC[1]);
+                    imgui.same_line();
+                    if imgui.button("Warp To " .. NPC[1]) then
+                        WarpPlayerToNPCPosition(NPC[3]);
+                    end
                 end
             end
         end
-    end
+    end 
 end
 )
