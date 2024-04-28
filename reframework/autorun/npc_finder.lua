@@ -85,8 +85,8 @@ re.on_draw_ui(function()
             if imgui.button("Find NPCS") and GetNPCManager() then
                 GetNPCData();
             end
+            imgui.tree_pop();
         end
-        imgui.tree_pop();
     else
         if warping then
             coroutine.resume(warpCoroutine);
