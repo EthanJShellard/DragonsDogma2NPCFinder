@@ -43,6 +43,11 @@ local function GetNPCData()
         end
     end
     NPCDataFound = #NPCDataArray > 0;
+
+    -- sort alphabetically
+    table.sort(NPCDataArray, function(a,b)
+        return a[1] < b[1];
+    end)
 end
 
 local _defaultHeightDamageForHuman;
