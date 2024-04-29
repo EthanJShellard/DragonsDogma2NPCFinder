@@ -155,9 +155,7 @@ re.on_draw_ui(function()
             _, shouldDisableFallDamageDuringWarp = imgui.checkbox("Disable fall damage during warp: ", shouldDisableFallDamageDuringWarp);
             
             if imgui.tree_node(modName) then
-                imgui.text("Search: ");
-                imgui.same_line();
-                searchStringChange, searchString = imgui.input_text("", searchString);
+                searchStringChange, searchString = imgui.input_text("Search", searchString, 0);
         
                 imgui.spacing();
         
