@@ -155,8 +155,10 @@ re.on_draw_ui(function()
             _, shouldDisableFallDamageDuringWarp = imgui.checkbox("Disable fall damage during warp: ", shouldDisableFallDamageDuringWarp);
             
             if imgui.tree_node(modName) then
+                imgui.push_id("Search Field");
                 searchStringChange, searchString = imgui.input_text("Search", searchString, 0);
-        
+                imgui.pop_id();
+
                 imgui.spacing();
         
                 for _, NPC in ipairs(NPCDataArray) do
